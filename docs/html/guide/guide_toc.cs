@@ -63,6 +63,9 @@
           <li><a href="<?cs var:toroot ?>guide/topics/providers/contacts-provider.html">
               <span class="en">Contacts Provider</span>
             </a></li>
+          <li><a href="<?cs var:toroot ?>guide/topics/providers/document-provider.html">
+              <span class="en">Storage Access Framework</span>
+            </a></li>
         </ul>
       </li>
       <li><a href="<?cs var:toroot ?>guide/components/intents-filters.html">
@@ -145,9 +148,6 @@
        <!--
           <li><a href="<?cs var:toroot ?>guide/topics/ui/layout/grid.html">
               <span class="en">Grid Layout</span>
-            </a></li>
-          <li><a href="<?cs var:toroot ?>guide/topics/ui/layout/tabs.html">
-              <span class="en">Tab Layout</span>
             </a></li>
        -->
           <li><a href="<?cs var:toroot ?>guide/topics/ui/layout/listview.html">
@@ -312,7 +312,7 @@
             <span class="en">Canvas and Drawables</span>
           </a></li>
         <li><a href="<?cs var:toroot ?>guide/topics/graphics/opengl.html">
-            <span class="en">OpenGL</span>
+            <span class="en">OpenGL ES</span>
           </a></li>
         <li><a href="<?cs var:toroot ?>guide/topics/graphics/hardware-accel.html">
             <span class="en">Hardware Acceleration</span>
@@ -408,10 +408,11 @@
         <ul>
           <li><a href="<?cs var:toroot ?>guide/topics/connectivity/nfc/nfc.html">NFC Basics</a></li>
           <li><a href="<?cs var:toroot ?>guide/topics/connectivity/nfc/advanced-nfc.html">Advanced NFC</a></li>
+          <li><a href="<?cs var:toroot ?>guide/topics/connectivity/nfc/hce.html">Host-based Card Emulation</a></li>
         </ul>
       </li>
       <li><a href="<?cs var:toroot?>guide/topics/connectivity/wifip2p.html">
-            <span class="en">Wi-Fi Direct</span></a>
+            <span class="en">Wi-Fi P2P</span></a>
           </li>
       <li class="nav-section">
           <div class="nav-section-header"><a href="<?cs var:toroot?>guide/topics/connectivity/usb/index.html">
@@ -497,6 +498,9 @@
           </a></li>
       <li><a href="<?cs var:toroot ?>guide/webapps/webview.html">
             <span class="en">Building Web Apps in WebView</span>
+          </a></li>
+      <li><a href="<?cs var:toroot ?>guide/webapps/migrating.html">
+            <span class="en">Migrating to WebView in Android 4.4</span>
           </a></li>
       <li><a href="<?cs var:toroot ?>guide/webapps/debugging.html">
             <span class="en">Debugging Web Apps</span>

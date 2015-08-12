@@ -73,12 +73,14 @@
 
 
 
+
+
 <html>
 <head>
 
 
-
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width" />
 
 <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
 <title>ActivityRecognitionClient | Android Developers</title>
@@ -305,6 +307,7 @@ onkeyup="return search_changed(event, false, '/')" />
                         </li>
                         <li><a href="/google/index.html">Google Services</a>
                         </li>
+                        
                       </ul>
                     </li>
                     <li class="distribute last">
@@ -371,6 +374,7 @@ onkeyup="return search_changed(event, false, '/')" />
                 <li class="google"><a href="/google/index.html"
                   >Google Services</a>
                 </li>
+                
             </ul>
         </div>
         
@@ -417,7 +421,22 @@ onkeyup="return search_changed(event, false, '/')" />
   </li>
   <li class="nav-section">
     <div class="nav-section-header empty"><a href="/google/play-services/maps.html">
-          <span class="en">Google Maps</span>
+          <span class="en">Maps</span>
+      </a></div>
+  </li>
+  <li class="nav-section">
+    <div class="nav-section-header"><a href="/google/play-services/ads.html">
+      <span class="en">Ads</span></a>
+    </div>
+    <ul>
+      <li><a href="/google/play-services/id.html">
+          <span class="en">Advertising ID</span></a>
+      </li>
+    </ul>
+  </li>
+  <li class="nav-section">
+    <div class="nav-section-header empty"><a href="/google/play-services/wallet.html">
+          <span class="en">Wallet</span>
       </a></div>
   </li>
   <li class="nav-section">
@@ -756,7 +775,7 @@ Summary:
  ActivityRecognitionClient mActivityRecognitionClient =
          new ActivityRecognitionClient(this, this, this);
  mActivityRecognitionClient.connect();
-
+ 
   // Called when a connection to the ActivityRecognitionService has been established.
  public void onConnected(Bundle connectionHint) {
      Intent intent = new Intent(this, MyIntentService.class);
@@ -2032,6 +2051,11 @@ From interface
  Activities may arrive several seconds after the requested
  detectionIntervalMillis if the activity detection service requires more
  samples to make a more accurate prediction.
+ <p>
+ To conserve battery, activity reporting may stop when the device is
+ 'STILL' for an extended period of time. It will resume once the device
+ moves again. This only happens on devices that support the
+ Sensor.TYPE_SIGNIFICANT_MOTION hardware.
  <p>
  A common use case is that an application wants to monitor activities in
  the background and perform an action when a specific activity is

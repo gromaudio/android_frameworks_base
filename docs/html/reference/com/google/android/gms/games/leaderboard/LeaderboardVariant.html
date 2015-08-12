@@ -73,12 +73,14 @@
 
 
 
+
+
 <html>
 <head>
 
 
-
-<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<meta name="viewport" content="width=device-width" />
 
 <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
 <title>LeaderboardVariant | Android Developers</title>
@@ -305,6 +307,7 @@ onkeyup="return search_changed(event, false, '/')" />
                         </li>
                         <li><a href="/google/index.html">Google Services</a>
                         </li>
+                        
                       </ul>
                     </li>
                     <li class="distribute last">
@@ -371,6 +374,7 @@ onkeyup="return search_changed(event, false, '/')" />
                 <li class="google"><a href="/google/index.html"
                   >Google Services</a>
                 </li>
+                
             </ul>
         </div>
         
@@ -417,7 +421,22 @@ onkeyup="return search_changed(event, false, '/')" />
   </li>
   <li class="nav-section">
     <div class="nav-section-header empty"><a href="/google/play-services/maps.html">
-          <span class="en">Google Maps</span>
+          <span class="en">Maps</span>
+      </a></div>
+  </li>
+  <li class="nav-section">
+    <div class="nav-section-header"><a href="/google/play-services/ads.html">
+      <span class="en">Ads</span></a>
+    </div>
+    <ul>
+      <li><a href="/google/play-services/id.html">
+          <span class="en">Advertising ID</span></a>
+      </li>
+    </ul>
+  </li>
+  <li class="nav-section">
+    <div class="nav-section-header empty"><a href="/google/play-services/wallet.html">
+          <span class="en">Wallet</span>
       </a></div>
   </li>
   <li class="nav-section">
@@ -911,6 +930,24 @@ onkeyup="return search_changed(event, false, '/')" />
             
             
             
+            String</nobr>
+        </td>
+        <td class="jd-linkcol" width="100%"><nobr>
+        <span class="sympad"><a href="/reference/com/google/android/gms/games/leaderboard/LeaderboardVariant.html#getPlayerScoreTag()">getPlayerScoreTag</a></span>()</nobr>
+        
+        <div class="jd-descrdiv">Retrieves the viewing player's score tag for this variant, if any.</div>
+  
+  </td></tr>
+
+
+	 
+    <tr class="alt-color api apilevel-" >
+        <td class="jd-typecol"><nobr>
+            abstract
+            
+            
+            
+            
             long</nobr>
         </td>
         <td class="jd-linkcol" width="100%"><nobr>
@@ -922,7 +959,7 @@ onkeyup="return search_changed(event, false, '/')" />
 
 
 	 
-    <tr class="alt-color api apilevel-" >
+    <tr class=" api apilevel-" >
         <td class="jd-typecol"><nobr>
             abstract
             
@@ -940,7 +977,7 @@ onkeyup="return search_changed(event, false, '/')" />
 
 
 	 
-    <tr class=" api apilevel-" >
+    <tr class="alt-color api apilevel-" >
         <td class="jd-typecol"><nobr>
             abstract
             
@@ -1537,6 +1574,42 @@ onkeyup="return search_changed(event, false, '/')" />
       <h5 class="jd-tagtitle">Returns</h5>
       <ul class="nolist"><li>The long representation of the viewing player's rank, or <code><a href="/reference/com/google/android/gms/games/leaderboard/LeaderboardVariant.html#PLAYER_RANK_UNKNOWN">PLAYER_RANK_UNKNOWN</a></code>
          if the player has no rank for this variant.
+</li></ul>
+  </div>
+
+    </div>
+</div>
+
+
+<A NAME="getPlayerScoreTag()"></A>
+
+<div class="jd-details api apilevel-"> 
+    <h4 class="jd-details-title">
+      <span class="normal">
+        public 
+         
+         
+        abstract 
+         
+        String
+      </span>
+      <span class="sympad">getPlayerScoreTag</span>
+      <span class="normal">()</span>
+    </h4>
+      <div class="api-level">
+        <div></div>
+        
+  
+
+      </div>
+    <div class="jd-details-descr">
+      
+  <div class="jd-tagdata jd-tagdescr"><p>Retrieves the viewing player's score tag for this variant, if any. Note that this value is
+ only accurate if <code><a href="/reference/com/google/android/gms/games/leaderboard/LeaderboardVariant.html#hasPlayerInfo()">hasPlayerInfo()</a></code> returns true.</p></div>
+  <div class="jd-tagdata">
+      <h5 class="jd-tagtitle">Returns</h5>
+      <ul class="nolist"><li>The score tag associated with the viewing player's score, or <code>null</code> if the
+         player has no score for this variant.
 </li></ul>
   </div>
 

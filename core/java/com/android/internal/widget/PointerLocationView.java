@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
- *
+ * Copyright (C) 2013 Freescale Semiconductor, Inc.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -46,6 +46,7 @@ public class PointerLocationView extends View implements InputDeviceListener {
         // Trace of previous points.
         private float[] mTraceX = new float[32];
         private float[] mTraceY = new float[32];
+        private boolean[] mTraceCurrent = new boolean[32];
         private int mTraceCount;
         
         // True if the pointer is down.
@@ -76,7 +77,7 @@ public class PointerLocationView extends View implements InputDeviceListener {
             mTraceCount = 0;
         }
         
-        public void addTrace(float x, float y) {
+        public void addTrace(float x, float y, boolean current) {
             int traceCapacity = mTraceX.length;
             if (mTraceCount == traceCapacity) {
                 traceCapacity *= 2;
@@ -87,10 +88,15 @@ public class PointerLocationView extends View implements InputDeviceListener {
                 float[] newTraceY = new float[traceCapacity];
                 System.arraycopy(mTraceY, 0, newTraceY, 0, mTraceCount);
                 mTraceY = newTraceY;
+
+                boolean[] newTraceCurrent = new boolean[traceCapacity];
+                System.arraycopy(mTraceCurrent, 0, newTraceCurrent, 0, mTraceCount);
+                mTraceCurrent= newTraceCurrent;
             }
             
             mTraceX[mTraceCount] = x;
             mTraceY[mTraceCount] = y;
+            mTraceCurrent[mTraceCount] = current;
             mTraceCount += 1;
         }
     }
@@ -106,6 +112,7 @@ public class PointerLocationView extends View implements InputDeviceListener {
     private final Paint mTextBackgroundPaint;
     private final Paint mTextLevelPaint;
     private final Paint mPaint;
+    private final Paint mCurrentPointPaint;
     private final Paint mTargetPaint;
     private final Paint mPathPaint;
     private final FontMetricsInt mTextMetrics = new FontMetricsInt();
@@ -147,6 +154,11 @@ public class PointerLocationView extends View implements InputDeviceListener {
         mPaint.setARGB(255, 255, 255, 255);
         mPaint.setStyle(Paint.Style.STROKE);
         mPaint.setStrokeWidth(2);
+        mCurrentPointPaint = new Paint();
+        mCurrentPointPaint.setAntiAlias(true);
+        mCurrentPointPaint.setARGB(255, 255, 0, 0);
+        mCurrentPointPaint.setStyle(Paint.Style.STROKE);
+        mCurrentPointPaint.setStrokeWidth(2);
         mTargetPaint = new Paint();
         mTargetPaint.setAntiAlias(false);
         mTargetPaint.setARGB(255, 0, 0, 192);
@@ -294,7 +306,8 @@ public class PointerLocationView extends View implements InputDeviceListener {
                 }
                 if (haveLast) {
                     canvas.drawLine(lastX, lastY, x, y, mPathPaint);
-                    canvas.drawPoint(lastX, lastY, mPaint);
+                    final Paint paint = ps.mTraceCurrent[i] ? mCurrentPointPaint : mPaint;
+                    canvas.drawPoint(lastX, lastY, paint);
                     drawn = true;
                 }
                 lastX = x;
@@ -549,8 +562,9 @@ public class PointerLocationView extends View implements InputDeviceListener {
 
             final PointerState ps = mPointers.get(id);
             ps.mCurDown = true;
-            ps.mHasBoundingBox = (InputDevice.getDevice(event.getDeviceId()).
-                    getMotionRange(MotionEvent.AXIS_GENERIC_1) != null);
+            InputDevice device = InputDevice.getDevice(event.getDeviceId());
+            ps.mHasBoundingBox = device != null &&
+                    device.getMotionRange(MotionEvent.AXIS_GENERIC_1) != null;
         }
 
         final int NI = event.getPointerCount();
@@ -573,12 +587,20 @@ public class PointerLocationView extends View implements InputDeviceListener {
                     logCoords("Pointer", action, i, coords, id, event);
                 }
                 if (ps != null) {
-                    ps.addTrace(coords.x, coords.y);
+                    ps.addTrace(coords.x, coords.y, false);
                 }
             }
         }
         for (int i = 0; i < NI; i++) {
             final int id = event.getPointerId(i);
+
+			//add bound check
+			int size = mPointers.size();
+			if(id >= size) {
+				Log.w(TAG, "addPointerEvent, id " + id + " >= size " + size);
+				return;
+			}
+
             final PointerState ps = mCurDown ? mPointers.get(id) : null;
             final PointerCoords coords = ps != null ? ps.mCoords : mTempCoords;
             event.getPointerCoords(i, coords);
@@ -586,7 +608,7 @@ public class PointerLocationView extends View implements InputDeviceListener {
                 logCoords("Pointer", action, i, coords, id, event);
             }
             if (ps != null) {
-                ps.addTrace(coords.x, coords.y);
+                ps.addTrace(coords.x, coords.y, true);
                 ps.mXVelocity = mVelocity.getXVelocity(id);
                 ps.mYVelocity = mVelocity.getYVelocity(id);
                 mVelocity.getEstimator(id, ps.mEstimator);
@@ -625,7 +647,7 @@ public class PointerLocationView extends View implements InputDeviceListener {
                 if (mActivePointerId == id) {
                     mActivePointerId = event.getPointerId(index == 0 ? 1 : 0);
                 }
-                ps.addTrace(Float.NaN, Float.NaN);
+                ps.addTrace(Float.NaN, Float.NaN, false);
             }
         }
 

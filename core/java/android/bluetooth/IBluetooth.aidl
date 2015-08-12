@@ -1,6 +1,4 @@
 /*
- * Copyright (C) 2013 The Linux Foundation. All rights reserved
- * Not a Contribution.
  * Copyright (C) 2008, The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -65,12 +63,9 @@ interface IBluetooth
     int getRemoteType(in BluetoothDevice device);
     String getRemoteAlias(in BluetoothDevice device);
     boolean setRemoteAlias(in BluetoothDevice device, in String name);
-    boolean setRemoteTrust(in BluetoothDevice device, in boolean value);
-    boolean getRemoteTrust(in BluetoothDevice device);
     int getRemoteClass(in BluetoothDevice device);
     ParcelUuid[] getRemoteUuids(in BluetoothDevice device);
     boolean fetchRemoteUuids(in BluetoothDevice device);
-    boolean fetchRemoteMasInstances(in BluetoothDevice device);
 
     boolean setPin(in BluetoothDevice device, boolean accept, int len, in byte[] pinCode);
     boolean setPasskey(in BluetoothDevice device, boolean accept, int len, in byte[]
@@ -85,6 +80,6 @@ interface IBluetooth
     // For Socket
     ParcelFileDescriptor connectSocket(in BluetoothDevice device, int type, in ParcelUuid uuid, int port, int flag);
     ParcelFileDescriptor createSocketChannel(int type, in String serviceName, in ParcelUuid uuid, int port, int flag);
-    int setSocketOpt(int type, int port, int optionName, in byte [] optionVal, int optionLen);
-    int getSocketOpt(int type, int port, int optionName, out byte [] optionVal);
+
+    boolean configHciSnoopLog(boolean enable);
 }

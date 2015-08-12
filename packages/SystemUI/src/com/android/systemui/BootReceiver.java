@@ -47,7 +47,7 @@ public class BootReceiver extends BroadcastReceiver {
                 context.startService(loadsystime);
             }
         } catch (Exception e) {
-            Slog.e(TAG, "Can't start load average service", e);
+            Log.e(TAG, "Can't start load average service", e);
         }
     }
 }

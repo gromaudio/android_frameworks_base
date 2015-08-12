@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2010 The Android Open Source Project
- * Copyright (C) 2013 Freescale Semiconductor, Inc.
+ * Copyright (C) 2013-2014 Freescale Semiconductor, Inc.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -30,6 +30,8 @@ import android.os.SystemProperties;
 import android.util.Log;
 import android.os.PowerManager;
 
+import com.android.server.net.BaseNetworkObserver;
+
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,7 +41,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * ConnectivityService.
  * @hide
  */
-public class EthernetDataTracker implements NetworkStateTracker {
+public class EthernetDataTracker extends BaseNetworkStateTracker {
     private static final String NETWORKTYPE = "ETHERNET";
     private static final String TAG = "Ethernet";
 
@@ -60,7 +62,6 @@ public class EthernetDataTracker implements NetworkStateTracker {
 
     /* For sending events to connectivity service handler */
     private Handler mCsHandler;
-    private Context mContext;
 
     private static EthernetDataTracker sInstance;
     private static String sIfaceMatch = "";
@@ -68,7 +69,7 @@ public class EthernetDataTracker implements NetworkStateTracker {
 
     private INetworkManagementService mNMService;
 
-    private static class InterfaceObserver extends INetworkManagementEventObserver.Stub {
+    private static class InterfaceObserver extends BaseNetworkObserver {
         private EthernetDataTracker mTracker;
 
         InterfaceObserver(EthernetDataTracker tracker) {
@@ -76,15 +77,16 @@ public class EthernetDataTracker implements NetworkStateTracker {
             mTracker = tracker;
         }
 
+        @Override
         public void interfaceStatusChanged(String iface, boolean up) {
             Log.d(TAG, "Interface status changed: " + iface + (up ? "up" : "down"));
         }
 
+        @Override
         public void interfaceLinkStateChanged(String iface, boolean up) {
             if (mIface.equals(iface)) {
                 Log.d(TAG, "Interface " + iface + " link " + (up ? "up" : "down"));
                 mLinkUp = up;
-                mNfsmode = "yes".equals(SystemProperties.get("ro.nfs.mode", "no"));
                 mAlwayson = "yes".equals(SystemProperties.get("ro.ethernet.alwayson.mode", "yes"));
                 mTracker.mNetworkInfo.setIsAvailable(up);
 
@@ -101,20 +103,14 @@ public class EthernetDataTracker implements NetworkStateTracker {
             }
         }
 
+        @Override
         public void interfaceAdded(String iface) {
             mTracker.interfaceAdded(iface);
         }
 
+        @Override
         public void interfaceRemoved(String iface) {
             mTracker.interfaceRemoved(iface);
-        }
-
-        public void limitReached(String limitName, String iface) {
-            // Ignored.
-        }
-
-        public void interfaceClassDataActivityChanged(String label, boolean active) {
-            // Ignored.
         }
     }
 
@@ -192,6 +188,7 @@ public class EthernetDataTracker implements NetworkStateTracker {
                 }
                 mLinkProperties = dhcpResults.linkProperties;
 
+                mNetworkInfo.setIsAvailable(true);
                 mNetworkInfo.setDetailedState(DetailedState.CONNECTED, null, mHwAddr);
                 Message msg = mCsHandler.obtainMessage(EVENT_STATE_CHANGED, mNetworkInfo);
                 msg.sendToTarget();
@@ -231,6 +228,7 @@ public class EthernetDataTracker implements NetworkStateTracker {
         IBinder b = ServiceManager.getService(Context.NETWORKMANAGEMENT_SERVICE);
         mNMService = INetworkManagementService.Stub.asInterface(b);
 
+        mNfsmode = "yes".equals(SystemProperties.get("ro.nfs.mode", "no"));
         mInterfaceObserver = new InterfaceObserver(this);
 
         // enable and try to connect to an ethernet interface that
@@ -255,7 +253,6 @@ public class EthernetDataTracker implements NetworkStateTracker {
                     NetworkUtils.stopDhcp(mIface);
 
                     reconnect();
-                    break;
                 }
             }
         } catch (RemoteException e) {
@@ -283,7 +280,7 @@ public class EthernetDataTracker implements NetworkStateTracker {
      * Re-enable connectivity to a network after a {@link #teardown()}.
      */
     public boolean reconnect() {
-        if (mLinkUp) {
+        if (mLinkUp || mNfsmode) {
             mTeardownRequested.set(false);
             runDhcp();
         }
@@ -292,6 +289,11 @@ public class EthernetDataTracker implements NetworkStateTracker {
 
     @Override
     public void captivePortalCheckComplete() {
+        // not implemented
+    }
+
+    @Override
+    public void captivePortalCheckCompleted(boolean isCaptivePortal) {
         // not implemented
     }
 
@@ -418,7 +420,7 @@ public class EthernetDataTracker implements NetworkStateTracker {
      * for this network.
      */
     public String getTcpBufferSizesPropName() {
-        return "net.tcp.buffersize.wifi";
+        return "net.tcp.buffersize.ethernet";
     }
 
     public void setDependencyMet(boolean met) {

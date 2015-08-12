@@ -18,6 +18,8 @@ package android.renderscript;
 
 import java.io.File;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 
 import android.content.Context;
 import android.content.pm.ApplicationInfo;
@@ -29,8 +31,8 @@ import android.graphics.SurfaceTexture;
 import android.os.Process;
 import android.util.Log;
 import android.view.Surface;
-
-
+import android.os.SystemProperties;
+import android.os.Trace;
 
 /**
  * This class provides access to a RenderScript context, which controls RenderScript
@@ -44,6 +46,8 @@ import android.view.Surface;
  * </div>
  **/
 public class RenderScript {
+    static final long TRACE_TAG = Trace.TRACE_TAG_RS;
+
     static final String LOG_TAG = "RenderScript_jni";
     static final boolean DEBUG  = false;
     @SuppressWarnings({"UnusedDeclaration", "deprecation"})
@@ -55,20 +59,35 @@ public class RenderScript {
      * We use a class initializer to allow the native code to cache some
      * field offsets.
      */
-    @SuppressWarnings({"FieldCanBeLocal", "UnusedDeclaration"})
+    @SuppressWarnings({"FieldCanBeLocal", "UnusedDeclaration"}) // TODO: now used locally; remove?
     static boolean sInitialized;
     native static void _nInit();
 
+    static Object sRuntime;
+    static Method registerNativeAllocation;
+    static Method registerNativeFree;
 
     static {
         sInitialized = false;
-        try {
-            System.loadLibrary("rs_jni");
-            _nInit();
-            sInitialized = true;
-        } catch (UnsatisfiedLinkError e) {
-            Log.e(LOG_TAG, "Error loading RS jni library: " + e);
-            throw new RSRuntimeException("Error loading RS jni library: " + e);
+        if (!SystemProperties.getBoolean("config.disable_renderscript", false)) {
+            try {
+                Class<?> vm_runtime = Class.forName("dalvik.system.VMRuntime");
+                Method get_runtime = vm_runtime.getDeclaredMethod("getRuntime");
+                sRuntime = get_runtime.invoke(null);
+                registerNativeAllocation = vm_runtime.getDeclaredMethod("registerNativeAllocation", Integer.TYPE);
+                registerNativeFree = vm_runtime.getDeclaredMethod("registerNativeFree", Integer.TYPE);
+            } catch (Exception e) {
+                Log.e(LOG_TAG, "Error loading GC methods: " + e);
+                throw new RSRuntimeException("Error loading GC methods: " + e);
+            }
+            try {
+                System.loadLibrary("rs_jni");
+                _nInit();
+                sInitialized = true;
+            } catch (UnsatisfiedLinkError e) {
+                Log.e(LOG_TAG, "Error loading RS jni library: " + e);
+                throw new RSRuntimeException("Error loading RS jni library: " + e);
+            }
         }
     }
 
@@ -84,6 +103,20 @@ public class RenderScript {
 
     static File mCacheDir;
 
+    // this should be a monotonically increasing ID
+    // used in conjunction with the API version of a device
+    static final long sMinorID = 1;
+
+    /**
+     * Returns an identifier that can be used to identify a particular
+     * minor version of RS.
+     *
+     * @hide
+     */
+    public static long getMinorID() {
+        return sMinorID;
+    }
+
      /**
      * Sets the directory to use as a persistent storage for the
      * renderscript object file cache.
@@ -92,6 +125,11 @@ public class RenderScript {
      * @param cacheDir A directory the current process can write to
      */
     public static void setupDiskCache(File cacheDir) {
+        if (!sInitialized) {
+            Log.e(LOG_TAG, "RenderScript.setupDiskCache() called when disabled");
+            return;
+        }
+
         // Defer creation of cache path to nScriptCCreate().
         mCacheDir = cacheDir;
     }
@@ -128,6 +166,7 @@ public class RenderScript {
     }
 
     ContextType mContextType;
+    ReentrantReadWriteLock mRWLock;
 
     // Methods below are wrapped to protect the non-threadsafe
     // lockless fifo.
@@ -155,7 +194,18 @@ public class RenderScript {
     native void rsnContextDestroy(int con);
     synchronized void nContextDestroy() {
         validate();
-        rsnContextDestroy(mContext);
+
+        // take teardown lock
+        // teardown lock can only be taken when no objects are being destroyed
+        ReentrantReadWriteLock.WriteLock wlock = mRWLock.writeLock();
+        wlock.lock();
+
+        int curCon = mContext;
+        // context is considered dead as of this point
+        mContext = 0;
+
+        wlock.unlock();
+        rsnContextDestroy(curCon);
     }
     native void rsnContextSetSurface(int con, int w, int h, Surface sur);
     synchronized void nContextSetSurface(int w, int h, Surface sur) {
@@ -240,8 +290,9 @@ public class RenderScript {
         validate();
         return rsnGetName(mContext, obj);
     }
+    // nObjDestroy is explicitly _not_ synchronous to prevent crashes in finalizers
     native void rsnObjDestroy(int con, int id);
-    synchronized void nObjDestroy(int id) {
+    void nObjDestroy(int id) {
         // There is a race condition here.  The calling code may be run
         // by the gc while teardown is occuring.  This protects againts
         // deleting dead objects.
@@ -875,6 +926,8 @@ public class RenderScript {
     Element mElement_LONG_3;
     Element mElement_LONG_4;
 
+    Element mElement_YUV;
+
     Element mElement_MATRIX_4X4;
     Element mElement_MATRIX_3X3;
     Element mElement_MATRIX_2X2;
@@ -1111,6 +1164,7 @@ public class RenderScript {
         if (ctx != null) {
             mApplicationContext = ctx.getApplicationContext();
         }
+        mRWLock = new ReentrantReadWriteLock();
     }
 
     /**
@@ -1137,6 +1191,11 @@ public class RenderScript {
      * @return RenderScript
      */
     public static RenderScript create(Context ctx, int sdkVersion, ContextType ct) {
+        if (!sInitialized) {
+            Log.e(LOG_TAG, "RenderScript.create() called when disabled; someone is likely to crash");
+            return null;
+        }
+
         RenderScript rs = new RenderScript(ctx);
 
         rs.mDev = rs.nDeviceCreate();
@@ -1200,6 +1259,8 @@ public class RenderScript {
      */
     public void destroy() {
         validate();
+        nContextFinish();
+
         nContextDeinitToClient(mContext);
         mMessageThread.mRun = false;
         try {
@@ -1208,7 +1269,6 @@ public class RenderScript {
         }
 
         nContextDestroy();
-        mContext = 0;
 
         nDeviceDestroy(mDev);
         mDev = 0;

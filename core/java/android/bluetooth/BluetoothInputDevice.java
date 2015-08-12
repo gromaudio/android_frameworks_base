@@ -84,12 +84,6 @@ public final class BluetoothInputDevice implements BluetoothProfile {
     public static final String ACTION_VIRTUAL_UNPLUG_STATUS =
         "android.bluetooth.input.profile.action.VIRTUAL_UNPLUG_STATUS";
 
-    /**
-     * @hide
-     */
-    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
-    public static final String ACTION_IDLE_TIME_CHANGED =
-        "codeaurora.bluetooth.input.profile.action.IDLE_TIME_CHANGED";
 
     /**
      * Return codes for the connect and disconnect Bluez / Dbus calls.
@@ -188,11 +182,6 @@ public final class BluetoothInputDevice implements BluetoothProfile {
      */
     public static final String EXTRA_VIRTUAL_UNPLUG_STATUS = "android.bluetooth.BluetoothInputDevice.extra.VIRTUAL_UNPLUG_STATUS";
 
-    /**
-     * @hide
-     */
-    public static final String EXTRA_IDLE_TIME = "codeaurora.bluetooth.BluetoothInputDevice.extra.IDLE_TIME";
-
     private Context mContext;
     private ServiceListener mServiceListener;
     private BluetoothAdapter mAdapter;
@@ -217,9 +206,7 @@ public final class BluetoothInputDevice implements BluetoothProfile {
                             try {
                                 if (mService == null) {
                                     if (VDBG) Log.d(TAG,"Binding service...");
-                                    if (!mContext.bindService(new Intent(IBluetoothInputDevice.class.getName()), mConnection, 0)) {
-                                        Log.e(TAG, "Could not bind to Bluetooth HID Service");
-                                    }
+                                    doBind();
                                 }
                             } catch (Exception re) {
                                 Log.e(TAG,"",re);
@@ -248,10 +235,18 @@ public final class BluetoothInputDevice implements BluetoothProfile {
             }
         }
 
-        if (!context.bindService(new Intent(IBluetoothInputDevice.class.getName()),
-                                 mConnection, 0)) {
-            Log.e(TAG, "Could not bind to Bluetooth HID Service");
+        doBind();
+    }
+
+    boolean doBind() {
+        Intent intent = new Intent(IBluetoothInputDevice.class.getName());
+        ComponentName comp = intent.resolveSystemService(mContext.getPackageManager(), 0);
+        intent.setComponent(comp);
+        if (comp == null || !mContext.bindService(intent, mConnection, 0)) {
+            Log.e(TAG, "Could not bind to Bluetooth HID Service with " + intent);
+            return false;
         }
+        return true;
     }
 
     /*package*/ void close() {
@@ -463,7 +458,7 @@ public final class BluetoothInputDevice implements BluetoothProfile {
         return BluetoothProfile.PRIORITY_OFF;
     }
 
-    private ServiceConnection mConnection = new ServiceConnection() {
+    private final ServiceConnection mConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             if (DBG) Log.d(TAG, "Proxy object connected");
             mService = IBluetoothInputDevice.Stub.asInterface(service);
@@ -645,56 +640,6 @@ public final class BluetoothInputDevice implements BluetoothProfile {
         if (mService == null) Log.w(TAG, "Proxy not attached to service");
         return false;
     }
-
-    /**
-     * Send Get_Idle_Time command to the connected HID input device.
-     *
-     * <p>Requires {@link android.Manifest.permission#BLUETOOTH_ADMIN} permission.
-     *
-     * @param device Remote Bluetooth Device
-     * @return false on immediate error,
-     *               true otherwise
-     * @hide
-     */
-    public boolean getIdleTime(BluetoothDevice device) {
-        if (DBG) log("getIdletime(" + device + ")");
-        if (mService != null && isEnabled() && isValidDevice(device)) {
-            try {
-                return mService.getIdleTime(device);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Stack:" + Log.getStackTraceString(new Throwable()));
-                return false;
-            }
-        }
-        if (mService == null) Log.w(TAG, "Proxy not attached to service");
-        return false;
-    }
-
-    /**
-     * Send Set_Idle_Time command to the connected HID input device.
-     *
-     * <p>Requires {@link android.Manifest.permission#BLUETOOTH_ADMIN} permission.
-     *
-     * @param device Remote Bluetooth Device
-     * @param idleTime Idle time to be set on HID Device
-     * @return false on immediate error,
-     *               true otherwise
-     * @hide
-     */
-    public boolean setIdleTime(BluetoothDevice device, byte idleTime) {
-        if (DBG) log("setIdletime(" + device + "), idleTime=" + idleTime);
-        if (mService != null && isEnabled() && isValidDevice(device)) {
-            try {
-                return mService.setIdleTime(device, idleTime);
-            } catch (RemoteException e) {
-                Log.e(TAG, "Stack:" + Log.getStackTraceString(new Throwable()));
-                return false;
-            }
-        }
-        if (mService == null) Log.w(TAG, "Proxy not attached to service");
-        return false;
-    }
-
     private static void log(String msg) {
       Log.d(TAG, msg);
     }

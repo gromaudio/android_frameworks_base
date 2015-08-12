@@ -24,6 +24,7 @@
 
 #include <android_runtime/AndroidRuntime.h>
 #include <android_runtime/android_view_Surface.h>
+#include <android_runtime/Log.h>
 
 #include <binder/IServiceManager.h>
 
@@ -43,6 +44,7 @@ static struct {
     jmethodID notifyDisplayConnected;
     jmethodID notifyDisplayDisconnected;
     jmethodID notifyDisplayError;
+    jmethodID notifyDisplayUibc;
 } gRemoteDisplayClassInfo;
 
 // ----------------------------------------------------------------------------
@@ -61,7 +63,7 @@ protected:
 
 public:
     virtual void onDisplayConnected(const sp<IGraphicBufferProducer>& bufferProducer,
-            uint32_t width, uint32_t height, uint32_t flags) {
+            uint32_t width, uint32_t height, uint32_t flags, uint32_t session) {
         JNIEnv* env = AndroidRuntime::getJNIEnv();
 
         jobject surfaceObj = android_view_Surface_createFromIGraphicBufferProducer(env, bufferProducer);
@@ -73,7 +75,7 @@ public:
 
         env->CallVoidMethod(mRemoteDisplayObjGlobal,
                 gRemoteDisplayClassInfo.notifyDisplayConnected,
-                surfaceObj, width, height, flags);
+                surfaceObj, width, height, flags, session);
         env->DeleteLocalRef(surfaceObj);
         checkAndClearExceptionFromCallback(env, "notifyDisplayConnected");
     }
@@ -92,6 +94,15 @@ public:
         env->CallVoidMethod(mRemoteDisplayObjGlobal,
                 gRemoteDisplayClassInfo.notifyDisplayError, error);
         checkAndClearExceptionFromCallback(env, "notifyDisplayError");
+    }
+
+    virtual void onUibcData(uint32_t type, float f0, float f1, uint32_t i0) {
+        JNIEnv* env = AndroidRuntime::getJNIEnv();
+
+        env->CallVoidMethod(mRemoteDisplayObjGlobal,
+                 gRemoteDisplayClassInfo.notifyDisplayUibc, type, f0, f1, i0);
+        checkAndClearExceptionFromCallback(env, "notifyDisplayUibc");
+
     }
 
 private:
@@ -115,6 +126,14 @@ public:
 
     ~NativeRemoteDisplay() {
         mDisplay->dispose();
+    }
+
+    void pause() {
+        mDisplay->pause();
+    }
+
+    void resume() {
+        mDisplay->resume();
     }
 
 private:
@@ -149,6 +168,16 @@ static jint nativeListen(JNIEnv* env, jobject remoteDisplayObj, jstring ifaceStr
     return reinterpret_cast<jint>(wrapper);
 }
 
+static void nativePause(JNIEnv* env, jobject remoteDisplayObj, jint ptr) {
+    NativeRemoteDisplay* wrapper = reinterpret_cast<NativeRemoteDisplay*>(ptr);
+    wrapper->pause();
+}
+
+static void nativeResume(JNIEnv* env, jobject remoteDisplayObj, jint ptr) {
+    NativeRemoteDisplay* wrapper = reinterpret_cast<NativeRemoteDisplay*>(ptr);
+    wrapper->resume();
+}
+
 static void nativeDispose(JNIEnv* env, jobject remoteDisplayObj, jint ptr) {
     NativeRemoteDisplay* wrapper = reinterpret_cast<NativeRemoteDisplay*>(ptr);
     delete wrapper;
@@ -161,6 +190,10 @@ static JNINativeMethod gMethods[] = {
             (void*)nativeListen },
     {"nativeDispose", "(I)V",
             (void*)nativeDispose },
+    {"nativePause", "(I)V",
+            (void*)nativePause },
+    {"nativeResume", "(I)V",
+            (void*)nativeResume },
 };
 
 int register_android_media_RemoteDisplay(JNIEnv* env)
@@ -171,11 +204,13 @@ int register_android_media_RemoteDisplay(JNIEnv* env)
     jclass clazz = env->FindClass("android/media/RemoteDisplay");
     gRemoteDisplayClassInfo.notifyDisplayConnected =
             env->GetMethodID(clazz, "notifyDisplayConnected",
-                    "(Landroid/view/Surface;III)V");
+                    "(Landroid/view/Surface;IIII)V");
     gRemoteDisplayClassInfo.notifyDisplayDisconnected =
             env->GetMethodID(clazz, "notifyDisplayDisconnected", "()V");
     gRemoteDisplayClassInfo.notifyDisplayError =
             env->GetMethodID(clazz, "notifyDisplayError", "(I)V");
+    gRemoteDisplayClassInfo.notifyDisplayUibc =
+            env->GetMethodID(clazz, "notifyDisplayUibc", "(IFFI)V");
     return err;
 }
 

@@ -30,6 +30,7 @@ import android.mtp.MtpConstants;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import android.os.SystemProperties;
 import android.util.Log;
 
@@ -58,8 +59,10 @@ public class MediaFile {
     public static final int FILE_TYPE_MID     = 11;
     public static final int FILE_TYPE_SMF     = 12;
     public static final int FILE_TYPE_IMY     = 13;
+    public static final int FILE_TYPE_RA     = 14;
+
     private static final int FIRST_MIDI_FILE_TYPE = FILE_TYPE_MID;
-    private static final int LAST_MIDI_FILE_TYPE = FILE_TYPE_IMY;
+    private static final int LAST_MIDI_FILE_TYPE = FILE_TYPE_RA;
    
     // Video file types
     public static final int FILE_TYPE_MP4     = 21;
@@ -79,8 +82,9 @@ public class MediaFile {
     public static final int FILE_TYPE_MP2PS   = 200;
     public static final int FILE_TYPE_MOV     = 201;
     public static final int FILE_TYPE_FLV     = 202;
+	public static final int FILE_TYPE_RMVB     = 203;
     private static final int FIRST_VIDEO_FILE_TYPE2 = FILE_TYPE_MP2PS;
-    private static final int LAST_VIDEO_FILE_TYPE2 = FILE_TYPE_FLV;
+    private static final int LAST_VIDEO_FILE_TYPE2 = FILE_TYPE_RMVB;
 
     // Image file types
     public static final int FILE_TYPE_JPEG    = 31;
@@ -215,6 +219,7 @@ public class MediaFile {
         addFileType("MKV", FILE_TYPE_MKV, "video/x-matroska");
         addFileType("WEBM", FILE_TYPE_WEBM, "video/webm");
         addFileType("TS", FILE_TYPE_MP2TS, "video/mp2ts");
+        addFileType("M2TS", FILE_TYPE_MP2TS, "video/mp2ts");
         addFileType("AVI", FILE_TYPE_AVI, "video/avi");
 
         if (isWMVEnabled()) {
@@ -254,7 +259,15 @@ public class MediaFile {
             addFileType("WMV", FILE_TYPE_WMV, "video/x-ms-wmv", MtpConstants.FORMAT_WMV);
             addFileType("ASF", FILE_TYPE_WMV, "video/x-ms-asf");
         }
-  
+
+        value = SystemProperties.get("ro.FSL_REAL_PARSER");
+        if ("1".equals(value)) {
+            addFileType("RMVB", FILE_TYPE_RMVB, "video/rmff");
+            addFileType("RM", FILE_TYPE_RMVB, "video/rmff");
+            addFileType("RV", FILE_TYPE_RMVB, "video/rmff");
+            addFileType("RA", FILE_TYPE_RA, "audio/rmff");
+        }
+
         addFileType("JPG", FILE_TYPE_JPEG, "image/jpeg", MtpConstants.FORMAT_EXIF_JPEG);
         addFileType("JPEG", FILE_TYPE_JPEG, "image/jpeg", MtpConstants.FORMAT_EXIF_JPEG);
         addFileType("GIF", FILE_TYPE_GIF, "image/gif", MtpConstants.FORMAT_GIF);
@@ -316,10 +329,10 @@ public class MediaFile {
     }
 
     public static MediaFileType getFileType(String path) {
-        int lastDot = path.lastIndexOf(".");
+        int lastDot = path.lastIndexOf('.');
         if (lastDot < 0)
             return null;
-        return sFileTypeMap.get(path.substring(lastDot + 1).toUpperCase());
+        return sFileTypeMap.get(path.substring(lastDot + 1).toUpperCase(Locale.ROOT));
     }
 
     public static boolean isMimeTypeMedia(String mimeType) {
@@ -365,7 +378,7 @@ public class MediaFile {
         }
         int lastDot = fileName.lastIndexOf('.');
         if (lastDot > 0) {
-            String extension = fileName.substring(lastDot + 1).toUpperCase();
+            String extension = fileName.substring(lastDot + 1).toUpperCase(Locale.ROOT);
             Integer value = sFileTypeToFormatMap.get(extension);
             if (value != null) {
                 return value.intValue();

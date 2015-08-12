@@ -23,6 +23,7 @@
 #include <utils/Trace.h>
 
 #include <SkGlyph.h>
+#include <SkGlyphCache.h>
 #include <SkUtils.h>
 
 #include "FontUtil.h"
@@ -55,6 +56,7 @@ Font::FontDescription::FontDescription(const SkPaint* paint, const mat4& matrix)
     mStyle = paint->getStyle();
     mStrokeWidth = paint->getStrokeWidth();
     mAntiAliasing = paint->isAntiAlias();
+    mHinting = paint->getHinting();
     mLookupTransform.reset();
     mLookupTransform[SkMatrix::kMScaleX] = roundf(fmaxf(1.0f, matrix[mat4::kScaleX]));
     mLookupTransform[SkMatrix::kMScaleY] = roundf(fmaxf(1.0f, matrix[mat4::kScaleY]));
@@ -80,6 +82,7 @@ hash_t Font::FontDescription::hash() const {
     hash = JenkinsHashMix(hash, android::hash_type(mStyle));
     hash = JenkinsHashMix(hash, android::hash_type(mStrokeWidth));
     hash = JenkinsHashMix(hash, int(mAntiAliasing));
+    hash = JenkinsHashMix(hash, android::hash_type(mHinting));
     hash = JenkinsHashMix(hash, android::hash_type(mLookupTransform[SkMatrix::kMScaleX]));
     hash = JenkinsHashMix(hash, android::hash_type(mLookupTransform[SkMatrix::kMScaleY]));
     return JenkinsHashWhiten(hash);
@@ -109,6 +112,9 @@ int Font::FontDescription::compare(const Font::FontDescription& lhs,
     if (lhs.mStrokeWidth > rhs.mStrokeWidth) return +1;
 
     deltaInt = int(lhs.mAntiAliasing) - int(rhs.mAntiAliasing);
+    if (deltaInt != 0) return deltaInt;
+
+    deltaInt = int(lhs.mHinting) - int(rhs.mHinting);
     if (deltaInt != 0) return deltaInt;
 
     if (lhs.mLookupTransform[SkMatrix::kMScaleX] <
@@ -266,9 +272,9 @@ CachedGlyphInfo* Font::getCachedGlyph(SkPaint* paint, glyph_t textUnit, bool pre
     if (cachedGlyph) {
         // Is the glyph still in texture cache?
         if (!cachedGlyph->mIsValid) {
-            const SkGlyph& skiaGlyph = GET_METRICS(paint, textUnit,
-                    &mDescription.mLookupTransform);
-            updateGlyphCache(paint, skiaGlyph, cachedGlyph, precaching);
+            SkAutoGlyphCache autoCache(*paint, NULL, &mDescription.mLookupTransform);
+            const SkGlyph& skiaGlyph = GET_METRICS(autoCache.getCache(), textUnit);
+            updateGlyphCache(paint, skiaGlyph, autoCache.getCache(), cachedGlyph, precaching);
         }
     } else {
         cachedGlyph = cacheGlyph(paint, textUnit, precaching);
@@ -410,8 +416,8 @@ void Font::render(SkPaint* paint, const char* text, uint32_t start, uint32_t len
     }
 }
 
-void Font::updateGlyphCache(SkPaint* paint, const SkGlyph& skiaGlyph, CachedGlyphInfo* glyph,
-        bool precaching) {
+void Font::updateGlyphCache(SkPaint* paint, const SkGlyph& skiaGlyph, SkGlyphCache* skiaGlyphCache,
+        CachedGlyphInfo* glyph, bool precaching) {
     glyph->mAdvanceX = skiaGlyph.fAdvanceX;
     glyph->mAdvanceY = skiaGlyph.fAdvanceY;
     glyph->mBitmapLeft = skiaGlyph.fLeft;
@@ -424,7 +430,7 @@ void Font::updateGlyphCache(SkPaint* paint, const SkGlyph& skiaGlyph, CachedGlyp
 
     // Get the bitmap for the glyph
     if (!skiaGlyph.fImage) {
-        paint->findImage(skiaGlyph, &mDescription.mLookupTransform);
+        skiaGlyphCache->findImage(skiaGlyph);
     }
     mState->cacheBitmap(skiaGlyph, glyph, &startX, &startY, precaching);
 
@@ -458,11 +464,12 @@ CachedGlyphInfo* Font::cacheGlyph(SkPaint* paint, glyph_t glyph, bool precaching
     CachedGlyphInfo* newGlyph = new CachedGlyphInfo();
     mCachedGlyphs.add(glyph, newGlyph);
 
-    const SkGlyph& skiaGlyph = GET_METRICS(paint, glyph, &mDescription.mLookupTransform);
+    SkAutoGlyphCache autoCache(*paint, NULL, &mDescription.mLookupTransform);
+    const SkGlyph& skiaGlyph = GET_METRICS(autoCache.getCache(), glyph);
     newGlyph->mIsValid = false;
     newGlyph->mGlyphIndex = skiaGlyph.fID;
 
-    updateGlyphCache(paint, skiaGlyph, newGlyph, precaching);
+    updateGlyphCache(paint, skiaGlyph, autoCache.getCache(), newGlyph, precaching);
 
     return newGlyph;
 }

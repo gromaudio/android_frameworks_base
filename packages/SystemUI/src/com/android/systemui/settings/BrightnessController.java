@@ -18,7 +18,6 @@ package com.android.systemui.settings;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
 import android.database.ContentObserver;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -30,9 +29,6 @@ import android.os.ServiceManager;
 import android.os.UserHandle;
 import android.provider.Settings;
 import android.provider.Settings.SettingNotFoundException;
-import android.util.Slog;
-import android.view.IWindowManager;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 
 import java.util.ArrayList;
@@ -51,6 +47,7 @@ public class BrightnessController implements ToggleSlider.Listener {
     private final CurrentUserTracker mUserTracker;
     private final Handler mHandler;
     private final BrightnessObserver mBrightnessObserver;
+    private boolean mExternalChange;
 
     private ArrayList<BrightnessStateChangeCallback> mChangeCallbacks =
             new ArrayList<BrightnessStateChangeCallback>();
@@ -79,16 +76,21 @@ public class BrightnessController implements ToggleSlider.Listener {
         @Override
         public void onChange(boolean selfChange, Uri uri) {
             if (selfChange) return;
-            if (BRIGHTNESS_MODE_URI.equals(uri)) {
-                updateMode();
-            } else if (BRIGHTNESS_URI.equals(uri)) {
-                updateSlider();
-            } else {
-                updateMode();
-                updateSlider();
-            }
-            for (BrightnessStateChangeCallback cb : mChangeCallbacks) {
-                cb.onBrightnessLevelChanged();
+            try {
+                mExternalChange = true;
+                if (BRIGHTNESS_MODE_URI.equals(uri)) {
+                    updateMode();
+                } else if (BRIGHTNESS_URI.equals(uri)) {
+                    updateSlider();
+                } else {
+                    updateMode();
+                    updateSlider();
+                }
+                for (BrightnessStateChangeCallback cb : mChangeCallbacks) {
+                    cb.onBrightnessLevelChanged();
+                }
+            } finally {
+                mExternalChange = false;
             }
         }
 
@@ -165,6 +167,7 @@ public class BrightnessController implements ToggleSlider.Listener {
         setMode(automatic ? Settings.System.SCREEN_BRIGHTNESS_MODE_AUTOMATIC
                 : Settings.System.SCREEN_BRIGHTNESS_MODE_MANUAL);
         updateIcon(automatic);
+        if (mExternalChange) return;
         if (!automatic) {
             final int val = value + mMinimumBacklight;
             setBrightness(val);
