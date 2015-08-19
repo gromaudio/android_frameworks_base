@@ -269,6 +269,10 @@ public final class BluetoothDevice implements Parcelable {
     public static final String EXTRA_PAIRING_VARIANT =
             "android.bluetooth.device.extra.PAIRING_VARIANT";
 
+    /** @hide */
+    public static final String EXTRA_SECURE_PAIRING =
+            "codeaurora.bluetooth.device.extra.SECURE";
+
     /**
      * Used as an int extra field in {@link #ACTION_PAIRING_REQUEST}
      * intents as the value of passkey.
@@ -307,6 +311,11 @@ public final class BluetoothDevice implements Parcelable {
     @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
     public static final String ACTION_UUID =
             "android.bluetooth.device.action.UUID";
+
+    /** @hide */
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    public static final String ACTION_MAS_INSTANCE =
+            "org.codeaurora.bluetooth.device.action.MAS_INSTANCE";
 
     /**
      * Broadcast Action: Indicates a failure to retrieve the name of a remote
@@ -513,6 +522,10 @@ public final class BluetoothDevice implements Parcelable {
      * is a parcelable version of {@link UUID}.
      */
     public static final String EXTRA_UUID = "android.bluetooth.device.extra.UUID";
+
+    /** @hide */
+    public static final String EXTRA_MAS_INSTANCE =
+        "org.codeaurora.bluetooth.device.extra.MAS_INSTANCE";
 
     /**
      * Lazy initialization. Guaranteed final after first object constructed, or

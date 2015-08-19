@@ -278,7 +278,9 @@ public final class BluetoothA2dp implements BluetoothProfile {
      */
     public List<BluetoothDevice> getConnectedDevices() {
         if (VDBG) log("getConnectedDevices()");
+Log.e(TAG, "11: " + (mService != null) + ", " + isEnabled() );
         if (mService != null && isEnabled()) {
+Log.e(TAG, "22");
             try {
                 return mService.getConnectedDevices();
             } catch (RemoteException e) {
