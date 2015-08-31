@@ -967,6 +967,18 @@ public final class BluetoothDevice implements Parcelable {
     }
 
     /** @hide */
+    public boolean fetchMasInstances() {
+        if (sService == null) {
+            Log.e(TAG, "BT not enabled. Cannot query remote device for MAS instances");
+            return false;
+        }
+        try {
+            return sService.fetchRemoteMasInstances(this);
+        } catch (RemoteException e) {Log.e(TAG, "", e);}
+        return false;
+    }
+
+    /** @hide */
     public int getServiceChannel(ParcelUuid uuid) {
         //TODO(BT)
         /*

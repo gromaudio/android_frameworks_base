@@ -104,6 +104,12 @@ public interface BluetoothProfile {
     public static final int MAP = 9;
 
     /**
+     * SAP
+     * @hide
+     */
+    public static final int SAP = 20;
+
+    /**
      * Handsfree Client - HFP HF Role
      * @hide
      */
@@ -126,6 +132,12 @@ public interface BluetoothProfile {
     * @hide
     */
     public static final int PROFILE_A2DP_UNDEFINED = -1;
+
+    /**
+     * DUN
+     * @hide
+     */
+    public static final int DUN = 21;
 
     /**
      * HID device
