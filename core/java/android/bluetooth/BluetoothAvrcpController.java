@@ -61,7 +61,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
      * receive.
      */
     public static final String ACTION_CONNECTION_STATE_CHANGED =
-            "android.bluetooth.acrcp-controller.profile.action.CONNECTION_STATE_CHANGED";
+        "android.bluetooth.acrcp-controller.profile.action.CONNECTION_STATE_CHANGED";
 
     private Context mContext;
     private ServiceListener mServiceListener;
@@ -95,7 +95,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
                         }
                     }
                 }
-            };
+        };
 
     /**
      * Create a BluetoothAvrcpController proxy object for interacting with the local
@@ -197,7 +197,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
     public int getConnectionState(BluetoothDevice device) {
         if (VDBG) log("getState(" + device + ")");
         if (mService != null && isEnabled()
-                && isValidDevice(device)) {
+            && isValidDevice(device)) {
             try {
                 return mService.getConnectionState(device);
             } catch (RemoteException e) {
@@ -243,18 +243,18 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
     };
 
     private boolean isEnabled() {
-        if (mAdapter.getState() == BluetoothAdapter.STATE_ON) return true;
-        return false;
+       if (mAdapter.getState() == BluetoothAdapter.STATE_ON) return true;
+       return false;
     }
 
     private boolean isValidDevice(BluetoothDevice device) {
-        if (device == null) return false;
+       if (device == null) return false;
 
-        if (BluetoothAdapter.checkBluetoothAddress(device.getAddress())) return true;
-        return false;
+       if (BluetoothAdapter.checkBluetoothAddress(device.getAddress())) return true;
+       return false;
     }
 
     private static void log(String msg) {
-        Log.d(TAG, msg);
+      Log.d(TAG, msg);
     }
 }

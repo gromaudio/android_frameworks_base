@@ -46,7 +46,7 @@ import java.util.List;
 public final class BluetoothHeadset implements BluetoothProfile {
     private static final String TAG = "BluetoothHeadset";
     private static final boolean DBG = true;
-    private static final boolean VDBG = false;
+    private static final boolean VDBG = Log.isLoggable("Handsfree", Log.VERBOSE);
 
     /**
      * Intent used to broadcast the change in connection state of the Headset
@@ -280,7 +280,8 @@ public final class BluetoothHeadset implements BluetoothProfile {
         Intent intent = new Intent(IBluetoothHeadset.class.getName());
         ComponentName comp = intent.resolveSystemService(mContext.getPackageManager(), 0);
         intent.setComponent(comp);
-        if (comp == null || !mContext.bindService(intent, mConnection, 0)) {
+        if (comp == null || !mContext.bindServiceAsUser(intent, mConnection, 0,
+                android.os.Process.myUserHandle())) {
             Log.e(TAG, "Could not bind to Bluetooth Headset Service with " + intent);
             return false;
         }
@@ -881,6 +882,50 @@ public final class BluetoothHeadset implements BluetoothProfile {
         }
         if (mService == null) {
             Log.w(TAG, "Proxy not attached to service");
+        }
+        return false;
+    }
+
+    /**
+     * enable WBS codec setting.
+     *
+     * @return true if successful
+     *         false if there was some error such as
+     *               there is no connected headset
+     * @hide
+     */
+    public boolean enableWBS() {
+        if (mService != null && isEnabled()) {
+            try {
+                return mService.enableWBS();
+            } catch (RemoteException e) {
+                Log.e(TAG, e.toString());
+            }
+        } else {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) Log.d(TAG, Log.getStackTraceString(new Throwable()));
+        }
+        return false;
+    }
+
+    /**
+     * disable WBS codec settting. It set NBS codec.
+     *
+     * @return true if successful
+     *         false if there was some error such as
+     *               there is no connected headset
+     * @hide
+     */
+    public boolean disableWBS() {
+        if (mService != null && isEnabled()) {
+            try {
+                return mService.disableWBS();
+            } catch (RemoteException e) {
+                Log.e(TAG, e.toString());
+            }
+        } else {
+            Log.w(TAG, "Proxy not attached to service");
+            if (DBG) Log.d(TAG, Log.getStackTraceString(new Throwable()));
         }
         return false;
     }

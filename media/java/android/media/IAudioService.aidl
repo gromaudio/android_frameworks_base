@@ -233,7 +233,7 @@ interface IAudioService {
     int getMasterStreamType();
 
     void setWiredDeviceConnectionState(int device, int state, String name);
-    int setBluetoothA2dpDeviceConnectionState(in BluetoothDevice device, int state);
+    int setBluetoothA2dpDeviceConnectionState(in BluetoothDevice device, int state, int profile);
 
     AudioRoutesInfo startWatchingRoutes(in IAudioRoutesObserver observer);
 

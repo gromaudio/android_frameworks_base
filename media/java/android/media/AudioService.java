@@ -169,7 +169,8 @@ public class AudioService extends IAudioService.Stub {
     //   these messages can only be queued, i.e. sent with queueMsgUnderWakeLock(),
     //   and not with sendMsg(..., ..., SENDMSG_QUEUE, ...)
     private static final int MSG_SET_WIRED_DEVICE_CONNECTION_STATE = 100;
-    private static final int MSG_SET_A2DP_CONNECTION_STATE = 101;
+    private static final int MSG_SET_A2DP_SRC_CONNECTION_STATE = 101;
+    private static final int MSG_SET_A2DP_SINK_CONNECTION_STATE = 102;
     // end of messages handled under wakelock
 
     private static final int BTA2DP_DOCK_TIMEOUT_MILLIS = 8000;
@@ -2329,7 +2330,7 @@ public class AudioService extends IAudioService.Stub {
                                                     AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP,
                                                     (state == BluetoothA2dp.STATE_CONNECTED) ? 1 : 0);
                             queueMsgUnderWakeLock(mAudioHandler,
-                                    MSG_SET_A2DP_CONNECTION_STATE,
+                                    MSG_SET_A2DP_SINK_CONNECTION_STATE,
                                     state,
                                     0,
                                     btDevice,
@@ -2400,8 +2401,18 @@ public class AudioService extends IAudioService.Stub {
                     mA2dp = null;
                     synchronized (mConnectedDevices) {
                         if (mConnectedDevices.containsKey(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP)) {
-                            makeA2dpDeviceUnavailableNow(
-                                    mConnectedDevices.get(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP));
+                            Log.d(TAG, "A2dp service disconnects, pause music player");
+                            BluetoothAdapter adapter = BluetoothAdapter.getDefaultAdapter();
+                            BluetoothDevice btDevice = adapter.getRemoteDevice
+                                    (mConnectedDevices.get(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP));
+                            int delay = checkSendBecomingNoisyIntent(
+                                    AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP, 0);
+                            queueMsgUnderWakeLock(mAudioHandler,
+                                    MSG_SET_A2DP_SRC_CONNECTION_STATE,
+                                    BluetoothA2dp.STATE_DISCONNECTED,
+                                    0,
+                                    btDevice,
+                                    delay);
                         }
                     }
                 }
@@ -2814,14 +2825,22 @@ public class AudioService extends IAudioService.Stub {
         }
     }
 
-    public int setBluetoothA2dpDeviceConnectionState(BluetoothDevice device, int state)
+    public int setBluetoothA2dpDeviceConnectionState(BluetoothDevice device, int state, int profile)
     {
         int delay;
+        if (profile != BluetoothProfile.A2DP && profile != BluetoothProfile.A2DP_SINK) {
+            throw new IllegalArgumentException("invalid profile " + profile);
+        }
         synchronized (mConnectedDevices) {
-            delay = checkSendBecomingNoisyIntent(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP,
-                                            (state == BluetoothA2dp.STATE_CONNECTED) ? 1 : 0);
+            if (profile == BluetoothProfile.A2DP) {
+                delay = checkSendBecomingNoisyIntent(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP,
+                        (state == BluetoothA2dp.STATE_CONNECTED) ? 1 : 0);
+            } else {
+                delay = 0;
+            }
             queueMsgUnderWakeLock(mAudioHandler,
-                    MSG_SET_A2DP_CONNECTION_STATE,
+                    (profile == BluetoothProfile.A2DP ?
+                            MSG_SET_A2DP_SINK_CONNECTION_STATE : MSG_SET_A2DP_SRC_CONNECTION_STATE),
                     state,
                     0,
                     device,
@@ -3663,8 +3682,13 @@ public class AudioService extends IAudioService.Stub {
                     mAudioEventWakeLock.release();
                     break;
 
-                case MSG_SET_A2DP_CONNECTION_STATE:
-                    onSetA2dpConnectionState((BluetoothDevice)msg.obj, msg.arg1);
+                case MSG_SET_A2DP_SRC_CONNECTION_STATE:
+                    onSetA2dpSourceConnectionState((BluetoothDevice) msg.obj, msg.arg1);
+                    mAudioEventWakeLock.release();
+                    break;
+
+                case MSG_SET_A2DP_SINK_CONNECTION_STATE:
+                    onSetA2dpSinkConnectionState((BluetoothDevice) msg.obj, msg.arg1);
                     mAudioEventWakeLock.release();
                     break;
 
@@ -3771,6 +3795,14 @@ public class AudioService extends IAudioService.Stub {
                 AudioSystem.DEVICE_STATE_UNAVAILABLE,
                 address);
         mConnectedDevices.remove(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP);
+        synchronized (mCurAudioRoutes) {
+            // Remove A2DP routes as well
+            if (mCurAudioRoutes.mBluetoothName != null) {
+                mCurAudioRoutes.mBluetoothName = null;
+                sendMsg(mAudioHandler, MSG_REPORT_NEW_ROUTES,
+                        SENDMSG_NOOP, 0, 0, null, 0);
+            }
+        }
     }
 
     // must be called synchronized on mConnectedDevices
@@ -3787,6 +3819,23 @@ public class AudioService extends IAudioService.Stub {
     }
 
     // must be called synchronized on mConnectedDevices
+    private void makeA2dpSrcAvailable(String address) {
+        AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP,
+                AudioSystem.DEVICE_STATE_AVAILABLE,
+                address);
+        mConnectedDevices.put(new Integer(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP),
+                address);
+    }
+
+    // must be called synchronized on mConnectedDevices
+    private void makeA2dpSrcUnavailable(String address) {
+        AudioSystem.setDeviceConnectionState(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP,
+                AudioSystem.DEVICE_STATE_UNAVAILABLE,
+                address);
+        mConnectedDevices.remove(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP);
+    }
+
+    // must be called synchronized on mConnectedDevices
     private void cancelA2dpDeviceTimeout() {
         mAudioHandler.removeMessages(MSG_BTA2DP_DOCK_TIMEOUT);
     }
@@ -3796,9 +3845,11 @@ public class AudioService extends IAudioService.Stub {
         return mAudioHandler.hasMessages(MSG_BTA2DP_DOCK_TIMEOUT);
     }
 
-    private void onSetA2dpConnectionState(BluetoothDevice btDevice, int state)
+    private void onSetA2dpSinkConnectionState(BluetoothDevice btDevice, int state)
     {
-        if (DEBUG_VOL) Log.d(TAG, "onSetA2dpConnectionState btDevice="+btDevice+" state="+state);
+        if (DEBUG_VOL) {
+            Log.d(TAG, "onSetA2dpSinkConnectionState btDevice="+btDevice+"state="+state);
+        }
         if (btDevice == null) {
             return;
         }
@@ -3809,8 +3860,8 @@ public class AudioService extends IAudioService.Stub {
 
         synchronized (mConnectedDevices) {
             boolean isConnected =
-                (mConnectedDevices.containsKey(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP) &&
-                 mConnectedDevices.get(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP).equals(address));
+                    (mConnectedDevices.containsKey(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP) &&
+                            mConnectedDevices.get(AudioSystem.DEVICE_OUT_BLUETOOTH_A2DP).equals(address));
 
             if (isConnected && state != BluetoothProfile.STATE_CONNECTED) {
                 if (btDevice.isBluetoothDock()) {
@@ -3853,6 +3904,32 @@ public class AudioService extends IAudioService.Stub {
                                 SENDMSG_NOOP, 0, 0, null, 0);
                     }
                 }
+            }
+        }
+    }
+
+    private void onSetA2dpSourceConnectionState(BluetoothDevice btDevice, int state)
+    {
+        if (DEBUG_VOL) {
+            Log.d(TAG, "onSetA2dpSourceConnectionState btDevice="+btDevice+" state="+state);
+        }
+        if (btDevice == null) {
+            return;
+        }
+        String address = btDevice.getAddress();
+        if (!BluetoothAdapter.checkBluetoothAddress(address)) {
+            address = "";
+        }
+
+        synchronized (mConnectedDevices) {
+            boolean isConnected =
+                    (mConnectedDevices.containsKey(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP) &&
+                            mConnectedDevices.get(AudioSystem.DEVICE_IN_BLUETOOTH_A2DP).equals(address));
+
+            if (isConnected && state != BluetoothProfile.STATE_CONNECTED) {
+                makeA2dpSrcUnavailable(address);
+            } else if (!isConnected && state == BluetoothProfile.STATE_CONNECTED) {
+                makeA2dpSrcAvailable(address);
             }
         }
     }
@@ -3900,14 +3977,14 @@ public class AudioService extends IAudioService.Stub {
             AudioSystem.DEVICE_OUT_ANLG_DOCK_HEADSET | AudioSystem.DEVICE_OUT_DGTL_DOCK_HEADSET |
             AudioSystem.DEVICE_OUT_ALL_USB;
 
-    // must be called before removing the device from mConnectedDevices
     private int checkSendBecomingNoisyIntent(int device, int state) {
         int delay = 0;
         if ((state == 0) && ((device & mBecomingNoisyIntentDevices) != 0)) {
             int devices = 0;
             for (int dev : mConnectedDevices.keySet()) {
-                if ((dev & mBecomingNoisyIntentDevices) != 0) {
-                   devices |= dev;
+                if (((dev & AudioSystem.DEVICE_BIT_IN) == 0) &&
+                        ((dev & mBecomingNoisyIntentDevices) != 0)) {
+                    devices |= dev;
                 }
             }
             if (devices == device) {
@@ -3922,7 +3999,8 @@ public class AudioService extends IAudioService.Stub {
             }
         }
 
-        if (mAudioHandler.hasMessages(MSG_SET_A2DP_CONNECTION_STATE) ||
+        if (mAudioHandler.hasMessages(MSG_SET_A2DP_SRC_CONNECTION_STATE) ||
+                mAudioHandler.hasMessages(MSG_SET_A2DP_SINK_CONNECTION_STATE) ||
                 mAudioHandler.hasMessages(MSG_SET_WIRED_DEVICE_CONNECTION_STATE)) {
             delay = 1000;
         }

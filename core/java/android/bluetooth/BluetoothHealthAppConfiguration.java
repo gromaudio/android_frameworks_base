@@ -138,8 +138,8 @@ public final class BluetoothHealthAppConfiguration implements Parcelable {
         return mChannelType;
     }
 
-    public static final Parcelable.Creator<BluetoothHealthAppConfiguration> CREATOR =
-        new Parcelable.Creator<BluetoothHealthAppConfiguration>() {
+    public static final Creator<BluetoothHealthAppConfiguration> CREATOR =
+        new Creator<BluetoothHealthAppConfiguration>() {
         @Override
         public BluetoothHealthAppConfiguration createFromParcel(Parcel in) {
             String name = in.readString();

@@ -84,8 +84,8 @@ public final class BluetoothClass implements Parcelable {
         return 0;
     }
 
-    public static final Parcelable.Creator<BluetoothClass> CREATOR =
-            new Parcelable.Creator<BluetoothClass>() {
+    public static final Creator<BluetoothClass> CREATOR =
+            new Creator<BluetoothClass>() {
         public BluetoothClass createFromParcel(Parcel in) {
             return new BluetoothClass(in.readInt());
         }
@@ -120,8 +120,8 @@ public final class BluetoothClass implements Parcelable {
      * Return true if the specified service class is supported by this
      * {@link BluetoothClass}.
      * <p>Valid service classes are the public constants in
-     * {@link BluetoothClass.Service}. For example, {@link
-     * BluetoothClass.Service#AUDIO}.
+     * {@link Service}. For example, {@link
+     * Service#AUDIO}.
      *
      * @param service valid service class
      * @return true if the service class is supported
@@ -135,17 +135,17 @@ public final class BluetoothClass implements Parcelable {
      * <p>Each {@link BluetoothClass} encodes exactly one device class, with
      * major and minor components.
      * <p>The constants in {@link
-     * BluetoothClass.Device} represent a combination of major and minor
+     * Device} represent a combination of major and minor
      * device components (the complete device class). The constants in {@link
-     * BluetoothClass.Device.Major} represent only major device classes.
-     * <p>See {@link BluetoothClass.Service} for service class constants.
+     * Major} represent only major device classes.
+     * <p>See {@link Service} for service class constants.
      */
     public static class Device {
         private static final int BITMASK               = 0x1FFC;
 
         /**
          * Defines all major device class constants.
-         * <p>See {@link BluetoothClass.Device} for minor classes.
+         * <p>See {@link Device} for minor classes.
          */
         public static class Major {
             private static final int BITMASK           = 0x1F00;
@@ -249,7 +249,7 @@ public final class BluetoothClass implements Parcelable {
     /**
      * Return the major device class component of this {@link BluetoothClass}.
      * <p>Values returned from this function can be compared with the
-     * public constants in {@link BluetoothClass.Device.Major} to determine
+     * public constants in {@link Device.Major} to determine
      * which major class is encoded in this Bluetooth class.
      *
      * @return major device class component
@@ -262,7 +262,7 @@ public final class BluetoothClass implements Parcelable {
      * Return the (major and minor) device class component of this
      * {@link BluetoothClass}.
      * <p>Values returned from this function can be compared with the
-     * public constants in {@link BluetoothClass.Device} to determine which
+     * public constants in {@link Device} to determine which
      * device class is encoded in this Bluetooth class.
      *
      * @return device class component
@@ -283,6 +283,8 @@ public final class BluetoothClass implements Parcelable {
     public static final int PROFILE_PANU = 4;
     /** @hide */
     public static final int PROFILE_NAP = 5;
+    /** @hide */
+    public static final int PROFILE_A2DP_SINK = 6;
 
     /**
      * Check class bits for possible bluetooth profile support.
@@ -306,6 +308,21 @@ public final class BluetoothClass implements Parcelable {
                 case Device.AUDIO_VIDEO_HEADPHONES:
                 case Device.AUDIO_VIDEO_LOUDSPEAKER:
                 case Device.AUDIO_VIDEO_CAR_AUDIO:
+                    return true;
+                default:
+                    return false;
+            }
+        } else if (profile == PROFILE_A2DP_SINK) {
+            if (hasService(Service.CAPTURE)) {
+                return true;
+            }
+            // By the A2DP spec, srcs must indicate the CAPTURE service.
+            // However if some device that do not, we try to
+            // match on some other class bits.
+            switch (getDeviceClass()) {
+                case Device.AUDIO_VIDEO_HIFI_AUDIO:
+                case Device.AUDIO_VIDEO_SET_TOP_BOX:
+                case Device.AUDIO_VIDEO_VCR :
                     return true;
                 default:
                     return false;

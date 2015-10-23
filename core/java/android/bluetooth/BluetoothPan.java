@@ -24,7 +24,6 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.os.ServiceManager;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -139,14 +138,14 @@ public final class BluetoothPan implements BluetoothProfile {
         }
         if (VDBG) Log.d(TAG, "BluetoothPan() call bindService");
         doBind();
-        if (VDBG) Log.d(TAG, "BluetoothPan(), bindService called");
     }
 
     boolean doBind() {
         Intent intent = new Intent(IBluetoothPan.class.getName());
         ComponentName comp = intent.resolveSystemService(mContext.getPackageManager(), 0);
         intent.setComponent(comp);
-        if (comp == null || !mContext.bindService(intent, mConnection, 0)) {
+        if (comp == null || !mContext.bindServiceAsUser(intent, mConnection, 0,
+                android.os.Process.myUserHandle())) {
             Log.e(TAG, "Could not bind to Bluetooth Pan Service with " + intent);
             return false;
         }
@@ -185,12 +184,20 @@ public final class BluetoothPan implements BluetoothProfile {
     final private IBluetoothStateChangeCallback mStateChangeCallback = new IBluetoothStateChangeCallback.Stub() {
 
         @Override
-        public void onBluetoothStateChange(boolean on) throws RemoteException {
+        public void onBluetoothStateChange(boolean on) {
             //Handle enable request to bind again.
+            Log.d(TAG, "onBluetoothStateChange on: " + on);
             if (on) {
-                Log.d(TAG, "onBluetoothStateChange(on) call bindService");
-                doBind();
-                if (VDBG) Log.d(TAG, "BluetoothPan(), bindService called");
+                try {
+                    if (mPanService == null) {
+                        Log.d(TAG, "onBluetoothStateChange call bindService");
+                        doBind();
+                    }
+                } catch (IllegalStateException e) {
+                    Log.e(TAG,"onBluetoothStateChange: could not bind to PAN service: ", e);
+                } catch (SecurityException e) {
+                    Log.e(TAG,"onBluetoothStateChange: could not bind to PAN service: ", e);
+                }
             } else {
                 if (VDBG) Log.d(TAG,"Unbinding service...");
                 synchronized (mConnection) {
