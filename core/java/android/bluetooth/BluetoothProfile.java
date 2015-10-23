@@ -104,6 +104,12 @@ public interface BluetoothProfile {
     public static final int MAP = 9;
 
     /**
+     * AVRCP Controller Profile
+     * @hide
+     */
+    public static final int AVRCP_CONTROLLER = 11;
+
+    /**
      * Default priority for devices that we try to auto-connect to and
      * and allow incoming connections for the profile
      * @hide

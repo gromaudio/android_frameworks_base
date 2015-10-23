@@ -69,6 +69,11 @@ public final class BluetoothA2dp implements BluetoothProfile {
     public static final String ACTION_CONNECTION_STATE_CHANGED =
         "android.bluetooth.a2dp.profile.action.CONNECTION_STATE_CHANGED";
 
+    /** @hide */
+    @SdkConstant(SdkConstantType.BROADCAST_INTENT_ACTION)
+    public static final String ACTION_AVRCP_CONNECTION_STATE_CHANGED =
+            "android.bluetooth.a2dp.profile.action.AVRCP_CONNECTION_STATE_CHANGED";
+
     /**
      * Intent used to broadcast the change in the Playing state of the A2DP
      * profile.
