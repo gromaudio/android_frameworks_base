@@ -260,7 +260,9 @@ public final class BluetoothLeAdvertiser {
                     UUID uuid = UUID.randomUUID();
                     mBluetoothGatt.registerClient(new ParcelUuid(uuid), this);
                     wait(LE_CALLBACK_TIMEOUT_MILLIS);
-                } catch (InterruptedException | RemoteException e) {
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Failed to start registeration", e);
+                } catch (RemoteException e) {
                     Log.e(TAG, "Failed to start registeration", e);
                 }
                 if (mClientIf > 0 && mIsAdvertising) {
@@ -288,7 +290,9 @@ public final class BluetoothLeAdvertiser {
                 try {
                     mBluetoothGatt.stopMultiAdvertising(mClientIf);
                     wait(LE_CALLBACK_TIMEOUT_MILLIS);
-                } catch (InterruptedException | RemoteException e) {
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "Failed to stop advertising", e);
+                } catch (RemoteException e) {
                     Log.e(TAG, "Failed to stop advertising", e);
                 }
                 // Advertise callback should have been removed from LeAdvertisers when

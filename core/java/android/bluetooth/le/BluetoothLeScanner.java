@@ -238,7 +238,10 @@ public final class BluetoothLeScanner {
                     UUID uuid = UUID.randomUUID();
                     mBluetoothGatt.registerClient(new ParcelUuid(uuid), this);
                     wait(REGISTRATION_CALLBACK_TIMEOUT_MILLIS);
-                } catch (InterruptedException | RemoteException e) {
+                } catch (InterruptedException e) {
+                    Log.e(TAG, "application registeration exception", e);
+                    postCallbackError(mScanCallback, ScanCallback.SCAN_FAILED_INTERNAL_ERROR);
+                } catch (RemoteException e) {
                     Log.e(TAG, "application registeration exception", e);
                     postCallbackError(mScanCallback, ScanCallback.SCAN_FAILED_INTERNAL_ERROR);
                 }
