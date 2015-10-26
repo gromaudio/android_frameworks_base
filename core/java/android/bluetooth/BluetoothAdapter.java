@@ -574,7 +574,9 @@ public final class BluetoothAdapter {
             return true;
         }
         try {
+            // TODO: DSFIX
             return mManagerService.enable();
+            //return mManagerService.enable(ActivityThread.currentPackageName());
         } catch (RemoteException e) {Log.e(TAG, "", e);}
         return false;
     }
