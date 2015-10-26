@@ -31,9 +31,12 @@ import android.bluetooth.IBluetoothStateChangeCallback;
 interface IBluetoothManager
 {
     IBluetooth registerAdapter(in IBluetoothManagerCallback callback);
-    IQBluetooth registerQAdapter(in IQBluetoothManagerCallback callback);
     void unregisterAdapter(in IBluetoothManagerCallback callback);
+    // TODO: DSFIX
+    /*
+    IQBluetooth registerQAdapter(in IQBluetoothManagerCallback callback);
     void unregisterQAdapter(in IQBluetoothManagerCallback callback);
+    */
     void registerStateChangeCallback(in IBluetoothStateChangeCallback callback);
     void unregisterStateChangeCallback(in IBluetoothStateChangeCallback callback);
     boolean isEnabled();
