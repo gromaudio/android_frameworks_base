@@ -84,13 +84,11 @@ LOCAL_SRC_FILES += \
 	core/java/android/app/backup/IRestoreObserver.aidl \
 	core/java/android/app/backup/IRestoreSession.aidl \
 	core/java/android/bluetooth/IBluetooth.aidl \
-	core/java/android/bluetooth/IQBluetooth.aidl \
 	core/java/android/bluetooth/IBluetoothA2dp.aidl \
 	core/java/android/bluetooth/IBluetoothA2dpSink.aidl \
 	core/java/android/bluetooth/IBluetoothAvrcpController.aidl \
 	core/java/android/bluetooth/IBluetoothAvrcpControllerCallback.aidl \
 	core/java/android/bluetooth/IBluetoothCallback.aidl \
-	core/java/android/bluetooth/IQBluetoothAdapterCallback.aidl \
 	core/java/android/bluetooth/IBluetoothHeadset.aidl \
 	core/java/android/bluetooth/IBluetoothHeadsetClient.aidl \
 	core/java/android/bluetooth/IBluetoothHeadsetPhone.aidl \
@@ -100,7 +98,6 @@ LOCAL_SRC_FILES += \
 	core/java/android/bluetooth/IBluetoothPan.aidl \
 	core/java/android/bluetooth/IBluetoothManager.aidl \
 	core/java/android/bluetooth/IBluetoothManagerCallback.aidl \
-	core/java/android/bluetooth/IQBluetoothManagerCallback.aidl \
 	core/java/android/bluetooth/IBluetoothPbap.aidl \
 	core/java/android/bluetooth/IBluetoothMap.aidl \
 	core/java/android/bluetooth/IBluetoothStateChangeCallback.aidl \
