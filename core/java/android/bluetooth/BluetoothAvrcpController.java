@@ -61,7 +61,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
      * receive.
      */
     public static final String ACTION_CONNECTION_STATE_CHANGED =
-        "android.bluetooth.acrcp-controller.profile.action.CONNECTION_STATE_CHANGED";
+            "android.bluetooth.acrcp-controller.profile.action.CONNECTION_STATE_CHANGED";
 
     private Context mContext;
     private ServiceListener mServiceListener;
@@ -95,7 +95,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
                         }
                     }
                 }
-        };
+            };
 
     /**
      * Create a BluetoothAvrcpController proxy object for interacting with the local
@@ -197,7 +197,7 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
     public int getConnectionState(BluetoothDevice device) {
         if (VDBG) log("getState(" + device + ")");
         if (mService != null && isEnabled()
-            && isValidDevice(device)) {
+                && isValidDevice(device)) {
             try {
                 return mService.getConnectionState(device);
             } catch (RemoteException e) {
@@ -217,6 +217,48 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
                 return;
             } catch (RemoteException e) {
                 Log.e(TAG, "Error talking to BT service in sendPassThroughCmd()", e);
+                return;
+            }
+        }
+        if (mService == null) Log.w(TAG, "Proxy not attached to service");
+    }
+
+    public void getElementAttr(BluetoothDevice device, int numAttr, int[] attrs) {
+        if (DBG) Log.d(TAG, "getElementAttr numAttr: "+numAttr);
+        if (mService != null && isEnabled()) {
+            try {
+                mService.getElementAttr(device, numAttr, attrs);
+                return;
+            } catch (RemoteException e) {
+                Log.e(TAG, "Error talking to BT service in getElementAttr()", e);
+                return;
+            }
+        }
+        if (mService == null) Log.w(TAG, "Proxy not attached to service");
+    }
+
+    public void setCallback(IBluetoothAvrcpControllerCallback callback) {
+        if (DBG) Log.d(TAG, "setCallback");
+        if (mService != null && isEnabled()) {
+            try {
+                mService.setCallback(callback);
+                return;
+            } catch (RemoteException e) {
+                Log.e(TAG, "Error talking to BT service in setCallback()", e);
+                return;
+            }
+        }
+        if (mService == null) Log.w(TAG, "Proxy not attached to service");
+    }
+
+    public void removeCallback() {
+        if (DBG) Log.d(TAG, "removeCallback");
+        if (mService != null && isEnabled()) {
+            try {
+                mService.removeCallback();
+                return;
+            } catch (RemoteException e) {
+                Log.e(TAG, "Error talking to BT service in removeCallback()", e);
                 return;
             }
         }
@@ -243,18 +285,18 @@ public final class BluetoothAvrcpController implements BluetoothProfile {
     };
 
     private boolean isEnabled() {
-       if (mAdapter.getState() == BluetoothAdapter.STATE_ON) return true;
-       return false;
+        if (mAdapter.getState() == BluetoothAdapter.STATE_ON) return true;
+        return false;
     }
 
     private boolean isValidDevice(BluetoothDevice device) {
-       if (device == null) return false;
+        if (device == null) return false;
 
-       if (BluetoothAdapter.checkBluetoothAddress(device.getAddress())) return true;
-       return false;
+        if (BluetoothAdapter.checkBluetoothAddress(device.getAddress())) return true;
+        return false;
     }
 
     private static void log(String msg) {
-      Log.d(TAG, msg);
+        Log.d(TAG, msg);
     }
 }
