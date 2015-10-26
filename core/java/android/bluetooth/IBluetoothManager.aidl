@@ -41,7 +41,8 @@ interface IBluetoothManager
     boolean enableNoAutoConnect();
     boolean disable(boolean persist);
     IBluetoothGatt getBluetoothGatt();
-    IQBluetooth getQBluetooth();
+    // TODO: DSFIX
+    //IQBluetooth getQBluetooth();
 
     String getAddress();
     String getName();
